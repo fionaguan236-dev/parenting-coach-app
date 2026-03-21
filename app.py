@@ -15,33 +15,36 @@ Rules:
 3. Provide 2-3 psychological hints before asking them to guess the child's need.
 """
 
-# 2. THE FIX: Lock the Client (Waiter) into Streamlit's Memory
+# 2. Lock the Client into memory
 if "client" not in st.session_state:
     st.session_state.client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
 
-# 3. Lock the Chat Session into Streamlit's Memory
+# 3. Lock the AI Chat Session into memory
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = st.session_state.client.chats.create(
         model="gemini-2.5-flash",
         config=types.GenerateContentConfig(system_instruction=my_coach_rules)
     )
 
-# 4. The Chat Interface
+# 4. Create a visual memory for the chat bubbles
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# 5. Redraw all past messages every time the screen reloads
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
+
+# 6. The Chat Input box
 user_message = st.chat_input("Type your frustration here...")
 
 if user_message:
+    # Save and draw the user's message
+    st.session_state.messages.append({"role": "user", "content": user_message})
     st.chat_message("user").write(user_message)
     
-    # Send the message using the Chat Session we saved in memory
+    # Send it to the AI
     response = st.session_state.chat_session.send_message(user_message)
-    st.chat_message("ai").write(response.text)
-# 5. The Chat Interface
-user_message = st.chat_input("Type your frustration here...")
-
-if user_message:
-    # Show what the user typed on the screen
-    st.chat_message("user").write(user_message)
     
-    # Send it to Gemini and show the AI's response
-    response = st.session_state.chat_session.send_message(user_message)
+    # Save and draw the AI's response
+    st.session_state.messages.append({"role": "ai", "content": response.text})
     st.chat_message("ai").write(response.text)
