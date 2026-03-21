@@ -42,9 +42,17 @@ if user_message:
     st.session_state.messages.append({"role": "user", "content": user_message})
     st.chat_message("user").write(user_message)
     
-    # Send it to the AI
-    response = st.session_state.chat_session.send_message(user_message)
-    
-    # Save and draw the AI's response
-    st.session_state.messages.append({"role": "ai", "content": response.text})
-    st.chat_message("ai").write(response.text)
+    # THE UPGRADE: Draw the AI bubble, show a spinner, and catch hidden errors!
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            try:
+                # Try to get the AI response
+                response = st.session_state.chat_session.send_message(user_message)
+                
+                # If successful, write it and save it to memory
+                st.write(response.text)
+                st.session_state.messages.append({"role": "assistant", "content": response.text})
+                
+            except Exception as e:
+                # If it fails, print the exact error in a red box on the screen
+                st.error(f"Oops! A background error happened: {e}")
