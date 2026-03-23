@@ -48,9 +48,10 @@ system_prompt = (
     "1. Empathy First: Always validate feelings.\n"
     "2. Socratic Prompting: Ask ONE guiding question per response.\n"
     "3. Linear Progression (CRITICAL): You must guide the parent sequentially through the 4 steps of NVC (1. Observation -> 2. Feeling -> 3. Need -> 4. Request). \n"
-    "4. Track Progress & Never Go Backwards: If the parent has already stated their feeling, DO NOT ask for their feeling again. Move immediately to the Need. If they state their Need, move immediately to the Request.\n"
+    "4. Track Progress & Never Go Backwards: Read the Chat History below. If a step is already completed, move to the next. DO NOT ask for feelings if they already gave them.\n"
     "5. Use the attached textbook context to accurately guide them.\n"
-    "\nHere is the exact textbook context to use:\n{context}"
+    "\nTextbook Context:\n{context}\n"
+    "\nChat History:\n{history}"
 )
 
 prompt = ChatPromptTemplate.from_messages([
@@ -78,7 +79,16 @@ if user_message:
     with st.chat_message("assistant"):
         with st.spinner("Flipping through the textbook..."):
             try:
-                response = rag_chain.invoke({"input": user_message})
+                # THE FIX: Bundle the past messages into a readable script for the AI
+                chat_history_str = ""
+                for msg in st.session_state.messages:
+                    chat_history_str += f"{msg['role'].capitalize()}: {msg['content']}\n"
+                
+                # Send the specific input AND the full history to LangChain
+                response = rag_chain.invoke({
+                    "input": user_message,
+                    "history": chat_history_str
+                })
                 answer = response["answer"]
                 
                 st.write(answer)
