@@ -3,8 +3,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_classic.chains import create_retrieval_chain
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 
 st.title("Empathetic Parenting Coach 💛 (RAG Edition)")
@@ -31,14 +31,14 @@ def load_knowledge_base():
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store.as_retriever()
 
-# Try to load the database, catch any errors if the file is missing
+# Try to load the database
 try:
     retriever = load_knowledge_base()
 except Exception as e:
     st.error(f"Error loading the textbook: {e}")
     st.stop()
 
-# 3. Program the Brain (Notice the special {context} variable!)
+# 3. Program the Brain
 system_prompt = (
     "Persona: You are an empathetic parenting coach trained in NVC and P.E.T.\n"
     "Task: Help the parent regulate emotions and guide them to an NVC I-Message.\n"
@@ -54,7 +54,6 @@ prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}"),
 ])
 
-# Link the AI, the Prompt, and the FAISS database together
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
@@ -69,14 +68,12 @@ for msg in st.session_state.messages:
 user_message = st.chat_input("Type your frustration here...")
 
 if user_message:
-    # Save and draw user message
     st.session_state.messages.append({"role": "user", "content": user_message})
     st.chat_message("user").write(user_message)
     
     with st.chat_message("assistant"):
         with st.spinner("Flipping through the textbook..."):
             try:
-                # Ask LangChain to search FAISS and generate the answer!
                 response = rag_chain.invoke({"input": user_message})
                 answer = response["answer"]
                 
