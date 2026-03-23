@@ -19,7 +19,7 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
 @st.cache_resource(show_spinner="Reading the textbook and building the database... (This takes about 10 seconds)")
 def load_knowledge_base():
     # Initialize the Translator INSIDE the cached function to prevent thread freezing
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=api_key)
     
     # Load the file
     loader = TextLoader("knowledge_base.txt")
