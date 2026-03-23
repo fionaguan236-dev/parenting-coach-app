@@ -10,15 +10,17 @@ from langchain_core.prompts import ChatPromptTemplate
 st.title("Empathetic Parenting Coach 💛 (RAG Edition)")
 st.write("Welcome! I am now consulting the official NVC textbook to help you.")
 
+# 1. Initialize the API Key and the Main Brain
 api_key = st.secrets["GOOGLE_API_KEY"]
-
-# 1. Initialize the AI Model and the "Embedder" (The Translator)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
-embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
 
-# 2. Build the Knowledge Base (Cached so it only runs once!)
-@st.cache_resource
+# 2. Build the Knowledge Base 
+# THE UPGRADE: We added a custom spinner, and moved the Embeddings INSIDE the function!
+@st.cache_resource(show_spinner="Reading the textbook and building the database... (This takes about 10 seconds)")
 def load_knowledge_base():
+    # Initialize the Translator INSIDE the cached function to prevent thread freezing
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
+    
     # Load the file
     loader = TextLoader("knowledge_base.txt")
     docs = loader.load()
@@ -31,7 +33,7 @@ def load_knowledge_base():
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store.as_retriever()
 
-# Try to load the database
+# Try to load the database safely
 try:
     retriever = load_knowledge_base()
 except Exception as e:
