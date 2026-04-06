@@ -10,30 +10,30 @@ from langchain_core.prompts import ChatPromptTemplate
 st.title("Empathetic Parenting Coach 💛 (RAG Edition)")
 st.write("Welcome! I am now consulting the official NVC textbook to help you.")
 
-# 1. Initialize the API Key and the Main Brain
+# --- THE QA SIDEBAR ---
+# This button clears the visual chat bubbles AND the AI's hidden memory history
+with st.sidebar:
+    st.header("QA Testing Tools")
+    st.write("Use this button to start a fresh test case and prevent token bloat!")
+    if st.button("Reset Chat History"):
+        st.session_state.messages = []
+        st.rerun()
+
+# 1. Initialize the API Key and the Main Brain (Back on 2.5-flash!)
 api_key = st.secrets["GOOGLE_API_KEY"]
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
 
 # 2. Build the Knowledge Base 
-# THE UPGRADE: We added a custom spinner, and moved the Embeddings INSIDE the function!
-@st.cache_resource(show_spinner="Reading the textbook and building the database... (This takes about 10 seconds)")
+@st.cache_resource(show_spinner="Reading the textbook and building the database...")
 def load_knowledge_base():
-    # Initialize the Translator INSIDE the cached function to prevent thread freezing
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=api_key)
-    
-    # Load the file
     loader = TextLoader("knowledge_base.txt")
     docs = loader.load()
-    
-    # Chop it into chunks
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(docs)
-    
-    # Translate to numbers and store in FAISS database
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store.as_retriever()
 
-# Try to load the database safely
 try:
     retriever = load_knowledge_base()
 except Exception as e:
@@ -41,7 +41,6 @@ except Exception as e:
     st.stop()
 
 # 3. Program the Brain
-
 system_prompt = (
     "Persona: You are an empathetic parenting coach trained in NVC and P.E.T.\n"
     "Task: Help the parent regulate emotions and guide them to an NVC I-Message.\n"
@@ -84,12 +83,10 @@ if user_message:
     with st.chat_message("assistant"):
         with st.spinner("Flipping through the textbook..."):
             try:
-                # THE FIX: Bundle the past messages into a readable script for the AI
                 chat_history_str = ""
                 for msg in st.session_state.messages:
                     chat_history_str += f"{msg['role'].capitalize()}: {msg['content']}\n"
                 
-                # Send the specific input AND the full history to LangChain
                 response = rag_chain.invoke({
                     "input": user_message,
                     "history": chat_history_str
